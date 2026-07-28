@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>탱크판독</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="탱크판독">
+<link rel="apple-touch-icon" href="icon.png">
+<style>
+:root{
+  --bg:#EDF1EE; --card:#FFFFFF; --line:#DDE4DF; --line2:#C6D0C9;
+  --ink:#1E2A24; --sub:#68766E; --mut:#98A49D;
+  --amber:#EF9F27; --amber-d:#BA7517; --amber-bg:#FAEEDA;
+  --green:#1D9E75; --green-d:#0F6E56; --green-bg:#E1F5EE;
+  --purple:#6D5BD0; --purple-bg:#EEEDFE; --purple-d:#3C3489;
+  --red:#E24B4A; --red-d:#A32D2D; --red-bg:#FCEBEB;
+  --blue:#2563EB;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Malgun Gothic",sans-serif;background:var(--bg);color:var(--ink);padding:14px 12px 40px;max-width:520px;margin:0 auto}
+h1{font-size:19px;font-weight:700;letter-spacing:-0.3px}
+.top{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px}
+.top small{font-size:11px;color:var(--mut)}
+.sub{font-size:12px;color:var(--sub);margin-bottom:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:12px}
+.step-tag{display:inline-block;font-size:11px;font-weight:600;color:var(--purple-d);background:var(--purple-bg);border-radius:6px;padding:2px 8px;margin-bottom:8px}
+.big-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:16px;border:none;border-radius:14px;background:var(--green-d);color:#fff;font-size:16px;font-weight:600;cursor:pointer}
+.big-btn:active{opacity:.85}
+.big-btn.gray{background:#fff;color:var(--ink);border:1px solid var(--line2);font-weight:500}
+.big-btn:disabled{background:var(--mut);cursor:default}
+.btn-row{display:flex;gap:8px;margin-top:8px}
+.btn-row .big-btn{padding:13px;font-size:14px}
+.hint{font-size:11.5px;color:var(--sub);line-height:1.6;margin-top:10px}
+.hint b{color:var(--ink);font-weight:600}
+.preview{width:100%;border-radius:12px;border:1px solid var(--line);margin-top:12px;display:none}
+.status{display:none;align-items:center;gap:10px;margin-top:12px;padding:12px;border-radius:12px;background:var(--bg);font-size:13px;color:var(--sub)}
+.spin{width:16px;height:16px;border:2.5px solid var(--line2);border-top-color:var(--green-d);border-radius:50%;animation:sp 0.8s linear infinite;flex:none}
+@keyframes sp{to{transform:rotate(360deg)}}
+.err{display:none;margin-top:12px;padding:12px;border-radius:12px;background:var(--red-bg);color:var(--red-d);font-size:13px;line-height:1.5}
+/* 검토 테이블 */
+.rev-head{display:grid;grid-template-columns:52px 44px 1fr 1fr;gap:6px;font-size:11px;color:var(--mut);padding:0 2px 6px}
+.rev-row{display:grid;grid-template-columns:52px 44px 1fr 1fr;gap:6px;align-items:center;padding:4px 0;border-top:1px solid var(--line)}
+.rev-row .tno{font-size:13px;font-weight:600}
+.chip{font-size:10.5px;text-align:center;border-radius:5px;padding:2px 0;font-weight:600}
+.chip.g{background:var(--amber-bg);color:var(--amber-d)}
+.chip.d{background:var(--green-bg);color:var(--green-d)}
+.rev-row input{width:100%;padding:8px 6px;font-size:14px;text-align:right;border:1px solid var(--line2);border-radius:8px;background:#fff;color:var(--ink)}
+.rev-row input:focus{outline:2px solid var(--green);border-color:transparent}
+.meta-line{font-size:12px;color:var(--sub);margin-bottom:8px}
+/* 결과 보드 */
+.sum{border:1.5px solid;border-radius:12px;padding:9px 12px;display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.sum .bar{flex:1;height:7px;background:var(--bg);border-radius:4px;overflow:hidden}
+.sum .bar i{display:block;height:100%}
+.sum b{font-size:15px}
+.sum span{font-size:11.5px;color:var(--sub)}
+.board-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -4px}
+table.board{border-collapse:collapse;table-layout:fixed;min-width:760px;width:100%}
+table.board td{text-align:center;padding:3px 1px;border-top:1px solid var(--line);font-size:12px}
+table.board td.lab{font-size:10.5px;color:var(--sub);text-align:right;padding-right:6px;white-space:nowrap;width:58px}
+.tube{position:relative;height:104px;border-radius:11px;background:#F4F7F5;overflow:hidden;border:1px solid var(--line)}
+.tube.low{border:2px solid var(--red)}
+.tube .pct{position:absolute;top:3px;left:0;right:0;font-size:9.5px;color:var(--sub)}
+.tube .lowtag{position:absolute;top:16px;left:50%;transform:translateX(-50%);font-size:9.5px;background:var(--red);color:#fff;border-radius:7px;padding:0 4px;font-weight:600}
+.tube .fill{position:absolute;bottom:0;left:0;right:0}
+.tube .dead{position:absolute;bottom:6%;left:2px;right:2px;border-top:2px dashed var(--red)}
+.foot{margin-top:10px;background:var(--purple-bg);border-radius:12px;padding:10px 12px;font-size:12px;color:var(--purple-d);line-height:1.6}
+.copybar{display:flex;gap:8px;margin-top:10px}
+.copybar button{flex:1;padding:11px;border-radius:10px;border:1px solid var(--line2);background:#fff;font-size:13px;color:var(--ink);cursor:pointer}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--ink);color:#fff;font-size:13px;border-radius:20px;padding:8px 16px;opacity:0;transition:opacity .25s;pointer-events:none}
+.toast.on{opacity:1}
+.hide{display:none}
+/* ===== 이관 권장 v2 ===== */
+.totcover{display:inline-block;background:#EFF6FF;border:1px solid #C7DCF7;border-radius:7px;padding:3px 10px;color:#0F4C9A;font-size:12px;margin-bottom:3px}
+.totcover.lowc{background:#FDEBE9;border-color:#F3B5B0;color:var(--red-d)}
+.tcsub{font-size:10.5px;opacity:.75}
+.caphit{color:#B96A00;font-weight:800;font-size:11px}
+.capnote{color:#B96A00;font-size:11.5px;display:block;margin-top:3px}
+</style>
+</head>
+<body>
+<div class="top"><h1>탱크게이지 판독</h1><small>청라한밭주유소 · DM-1000</small></div>
+<div class="sub">게이지 화면 촬영 → AI 판독 → 재고 게이지보드 생성 <a href="#" id="keyOpen" style="color:var(--blue);text-decoration:none">· API 키 설정</a></div>
+
+<!-- API 키 설정 -->
+<div class="card hide" id="keyCard">
+  <span class="step-tag">최초 1회 설정 · Anthropic API 키</span>
+  <input type="password" id="keyInput" placeholder="sk-ant-api03-..." style="width:100%;padding:12px;font-size:14px;border:1px solid var(--line2);border-radius:10px;margin-bottom:8px">
+  <button class="big-btn" id="keySave">저장</button>
+  <div class="hint">console.anthropic.com에서 발급한 키를 입력하세요. <b>키는 이 핸드폰(브라우저)에만 저장</b>되며 외부로 전송되지 않습니다. 저장 후에는 다시 입력할 필요 없습니다.</div>
+</div>
+
+<!-- STEP 1: 촬영 -->
+<div class="card" id="step1">
+  <span class="step-tag">1단계 · 사진 등록</span>
+  <button class="big-btn" id="btnCam">📷 게이지 화면 촬영</button>
+  <div class="btn-row">
+    <button class="big-btn gray" id="btnPick">앨범에서 선택</button>
+  </div>
+  <input type="file" id="fileCam" accept="image/jpeg,image/png" capture="environment" class="hide">
+  <input type="file" id="filePick" accept="image/jpeg,image/png" class="hide">
+  <img id="preview" class="preview" alt="촬영한 게이지 화면">
+  <div class="status" id="status"><div class="spin"></div><span id="statusTxt">판독 중…</span></div>
+  <div class="err" id="errBox"></div>
+  <div class="hint"><b>촬영 팁</b> — DM-1000 창 전체가 정면으로 나오게, 화면 반사 없이 찍어주세요. 12개 탱크의 숫자칸이 모두 보여야 합니다.</div>
+</div>
+
+<!-- STEP 2: 검토 -->
+<div class="card hide" id="step2">
+  <span class="step-tag">2단계 · 판독값 확인</span>
+  <div class="meta-line" id="metaLine">—</div>
+  <div class="rev-head"><span>탱크</span><span>유종</span><span style="text-align:right">현재고(드럼)</span><span style="text-align:right">일평균</span></div>
+  <div id="revRows"></div>
+  <button class="big-btn" id="btnBuild" style="margin-top:12px">게이지보드 생성</button>
+  <div class="hint">판독값이 실제와 다르면 여기서 바로 수정하세요. 일평균은 청라점 기본값이 입력되어 있습니다.</div>
+</div>
+
+<!-- STEP 3: 보드 -->
+<div id="step3" class="hide">
+  <div class="card" id="sumCard"></div>
+  <div class="card">
+    <span class="step-tag">3단계 · 재고 게이지보드</span>
+    <div class="meta-line" id="boardMeta"></div>
+    <div class="board-scroll"><table class="board" id="boardTb"></table></div>
+    <div class="foot" id="footLine"></div>
+  </div>
+
+  <!-- 발주 계산 -->
+  <div class="card">
+    <span class="step-tag">4단계 · 발주 계산 (재고관리판 동일 로직)</span>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+      <div>
+        <div style="font-size:11px;color:var(--sub);margin-bottom:4px">기준일 (시작)</div>
+        <input type="date" id="ordStart" style="width:100%;padding:10px 8px;font-size:14px;border:1px solid var(--line2);border-radius:8px;background:#fff;color:var(--ink)">
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--sub);margin-bottom:4px">목표일 (도착 전일)</div>
+        <input type="date" id="ordEnd" style="width:100%;padding:10px 8px;font-size:14px;border:1px solid var(--line2);border-radius:8px;background:#fff;color:var(--ink)">
+      </div>
+    </div>
+    <label style="display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--sub);margin-bottom:10px">
+      <input type="checkbox" id="ordClosed" style="width:16px;height:16px;accent-color:var(--green-d)">
+      <span><b style="color:var(--ink)">마감 후 촬영</b> — 기준일 판매는 이미 완료 (판매 시작 = 익일, 수요 1일 차감)</span>
+    </label>
+    <button class="big-btn" id="btnOrder">발주 계산</button>
+    <div id="ordResult" style="margin-top:12px"></div>
+    <div class="hint">데스크톱 탱크재고관리판과 동일 엔진 · 차량 구성(종류/대수/대당 적재) 편집 가능 · 결과표의 하화 배정 숫자를 직접 고치면 전체가 재계산됩니다 · 무연 140드럼차(20×7칸) · 경유 155드럼차(35+20×6칸)/160드럼차(20×8칸)</div>
+  </div>
+
+  <!-- 백업 / 복원 -->
+  <div class="card">
+    <span class="step-tag">백업 · 복원</span>
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <button class="big-btn" id="btnBackup" style="padding:12px;font-size:14px">현재 상태 백업</button>
+    </div>
+    <div style="display:flex;gap:8px;align-items:stretch">
+      <select id="bkList" style="flex:1;min-width:0;padding:10px 8px;font-size:12.5px;border:1px solid var(--line2);border-radius:8px;background:#fff;color:var(--ink)"></select>
+      <button class="big-btn gray" id="btnRestore" style="flex:none;width:110px;padding:12px;font-size:13px">불러오기</button>
+    </div>
+    <div class="hint">판독값·일평균·기준일·발주 상태(차량 구성/수동 배정)까지 저장됩니다. 최근 10개 보관, 이 핸드폰(브라우저)에만 저장. 사파리 데이터 삭제 시 함께 지워집니다.</div>
+  </div>
+</div>
+
+<div class="toast" id="toast">복사됨</div>
+
+<script>
+// ── 청라점 고정 설정 ─────────────────────────────
+const CAP = 250;                 // 드럼
+const DEAD = 5;                  // 데드스톡 드럼
+const FUEL = ['무연','경유','무연','무연','경유','경유','경유','경유','경유','경유','경유','경유'];
+const BUF = [7, 8];              // 이관탱크
+const AVG_DEFAULT = [13.9, 8, 7.9, 11.8, 5.2, 15.2, 0, 0, 8.9, 6.8, 48.1, 15.7];
+const WD = ['일','월','화','수','목','금','토'];
+
+let tanks = [];        // {no, fuel, drums, avg}
+let metaInfo = {};     // {station, datetime}
+
+// ── 1단계: 촬영/선택 ─────────────────────────────
+const $ = id => document.getElementById(id);
+$('btnCam').onclick = () => $('fileCam').click();
+$('btnPick').onclick = () => $('filePick').click();
+$('fileCam').onchange = e => handleFile(e.target.files[0]);
+$('filePick').onchange = e => handleFile(e.target.files[0]);
+
+async function handleFile(file){
+  if(!file) return;
+  hideErr();
+  let dataUrl;
+  try{
+    dataUrl = await compress(file, 1568, 0.85);
+  }catch(e){
+    return showErr('이미지를 읽지 못했습니다. 다시 촬영해 주세요. 계속 실패하면 설정→카메라→포맷을 "높은 호환성"으로 바꿔주세요.');
+  }
+  $('preview').src = dataUrl;
+  $('preview').style.display = 'block';
+  await readGauge(dataUrl);
+}
+
+function fileToDataURL(file){
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result);
+    r.onerror = () => rej(new Error('read fail'));
+    r.readAsDataURL(file);
+  });
+}
+
+async function compress(file, maxDim, q){
+  const raw = await fileToDataURL(file);   // data: URL — 샌드박스에서도 허용
+  try{
+    const img = await new Promise((res, rej) => {
+      const im = new Image();
+      im.onload = () => res(im);
+      im.onerror = () => rej(new Error('img decode fail'));
+      im.src = raw;
+    });
+    const s = Math.min(1, maxDim / Math.max(img.width, img.height));
+    const cv = document.createElement('canvas');
+    cv.width = Math.round(img.width * s);
+    cv.height = Math.round(img.height * s);
+    cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+    const out = cv.toDataURL('image/jpeg', q);
+    if(out.length > 2000) return out;
+    throw new Error('canvas fail');
+  }catch(e){
+    // 리사이즈 실패 시: JPEG/PNG 원본이면 그대로 사용 (약 5MB까지)
+    if(/^data:image\/(jpeg|png)/.test(raw) && raw.length < 6800000) return raw;
+    throw e;
+  }
+}
+
+// ── AI 판독 ─────────────────────────────────────
+async function readGauge(dataUrl){
+  setStatus(true, 'AI가 게이지 화면을 판독하는 중…');
+  const mt = dataUrl.startsWith('data:image/png') ? 'image/png' : 'image/jpeg';
+  const b64 = dataUrl.split(',')[1];
+  const prompt = `이 사진은 주유소 지하탱크 액면계 소프트웨어 "DM-1000 Total Level Check" 화면입니다.
+화면에는 1~12번 탱크가 왼쪽부터 순서대로 있고, 각 탱크 아래에 위에서부터 유종(U/G 또는 D/O), 탱크용량(L), 액위(mm), 재고량(L), 드럼수(D) 칸이 있습니다.
+12개 탱크 전부의 값을 정확히 읽어 아래 JSON 형식으로만 응답하세요. 마크다운 백틱, 설명, 다른 텍스트를 절대 포함하지 마세요.
+{"station":"화면의 주유소명 또는 null","datetime":"화면의 Date와 Time 숫자를 변환하지 말고 표기 그대로 (형식 YY/MM/DD HH:MM:SS, 예: 26/07/17 10:15:31) 또는 null","tanks":[{"no":1,"fuel":"U/G","mm":1500,"liters":24004,"drums":120.0}, ...12개]}
+숫자를 읽을 수 없는 칸은 null로 두세요. drums는 화면 맨 아래 (D)칸의 값입니다.`;
+  try{
+    const key = getKey();
+    if(!key){ setStatus(false); openKeyCard(); return showErr('먼저 API 키를 설정해 주세요 (상단 "API 키 설정").'); }
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key': key,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body: JSON.stringify({
+        model:'claude-sonnet-4-6',
+        max_tokens:1500,
+        messages:[{role:'user',content:[
+          {type:'image',source:{type:'base64',media_type:mt,data:b64}},
+          {type:'text',text:prompt}
+        ]}]
+      })
+    });
+    const data = await r.json();
+    if(r.status===401||r.status===403){ setStatus(false); openKeyCard(); return showErr('API 키가 유효하지 않습니다. 키를 다시 확인해 주세요.'); }
+    if(data.error){ setStatus(false); return showErr('API 오류: '+(data.error.message||'알 수 없는 오류')); }
+    const txt = (data.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('\n');
+    const clean = txt.replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(clean);
+    if(!parsed.tanks || !parsed.tanks.length) throw new Error('no tanks');
+    applyReading(parsed);
+  }catch(e){
+    setStatus(false);
+    showErr('판독에 실패했습니다. 화면 전체가 선명하게 나오도록 다시 촬영해 주세요. (숫자칸이 잘리거나 반사되면 실패할 수 있습니다)');
+    return;
+  }
+  setStatus(false);
+}
+
+/* DM-1000 Date 형식: YY/MM/DD (예: 26/07/17 = 2026-07-17) + Time HH:MM:SS */
+function parseDmDate(s){
+  if(!s) return null;
+  let m = /(\d{4})\s*[\/-]\s*(\d{2})\s*[\/-]\s*(\d{2})(?:\D+(\d{1,2})\s*:\s*(\d{2})(?:\s*:\s*(\d{2}))?)?/.exec(s);
+  let y;
+  if(m){ y = +m[1]; }
+  else {
+    m = /(\d{2})\s*\/\s*(\d{2})\s*\/\s*(\d{2})(?:\D+(\d{1,2})\s*:\s*(\d{2})(?:\s*:\s*(\d{2}))?)?/.exec(s);
+    if(!m) return null;
+    y = 2000 + +m[1];                                 // DM-1000: YY/MM/DD
+  }
+  let mo = +m[2], dd = +m[3];
+  if(y < 2020 || y > 2069){
+    // AI가 DD/MM/YY로 오해석해 변환한 경우(예: 2017-07-26) → 실제 26/07/17 = 2026-07-17
+    const y2 = 2000 + dd, d2 = y % 100;
+    if(y2 >= 2020 && y2 <= 2069 && d2 >= 1 && d2 <= 31){ y = y2; dd = d2; }
+    else return null;
+  }
+  const d = new Date(y, mo-1, dd, +(m[4]||0), +(m[5]||0), +(m[6]||0));
+  return isNaN(d) ? null : d;
+}
+function fmtDm(d, withTime){
+  const wd = ['일','월','화','수','목','금','토'][d.getDay()];
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+'('+wd+')'
+    + (withTime ? ' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0') : '');
+}
+
+function applyReading(p){
+  metaInfo = { station: p.station || '청라한밭주유소', datetime: p.datetime || '' };
+  metaInfo.dt = parseDmDate(metaInfo.datetime);
+  if(metaInfo.dt) $('ordClosed').checked = autoClosed(metaInfo.dt);   // 촬영 시각 20시 이후 → 마감 후 자동
+  if(metaInfo.dt){                                   // 발주 기준일 = 촬영일 (YY/MM/DD 해석)
+    const iso = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    $('ordStart').value = iso(metaInfo.dt);
+    const e = new Date(metaInfo.dt); e.setDate(e.getDate()+4);
+    $('ordEnd').value = iso(e);
+  }
+  tanks = [];
+  for(let i=1;i<=12;i++){
+    const t = (p.tanks||[]).find(x=>x.no===i) || {};
+    let drums = t.drums;
+    if((drums==null || isNaN(drums)) && t.liters!=null) drums = Math.round(t.liters/200*10)/10;
+    tanks.push({ no:i, fuel:FUEL[i-1], drums: drums==null?'':drums, avg: AVG_DEFAULT[i-1] });
+  }
+  renderReview();
+  $('step2').classList.remove('hide');
+  $('step2').scrollIntoView({behavior:'smooth'});
+}
+
+// ── 2단계: 검토 UI ───────────────────────────────
+function renderReview(){
+  $('metaLine').textContent = (metaInfo.station||'') + (metaInfo.dt ? ' · 게이지 기준 ' + fmtDm(metaInfo.dt,true) : (metaInfo.datetime ? ' · 게이지 기준 ' + metaInfo.datetime : ''));
+  $('revRows').innerHTML = tanks.map((t,i)=>`
+    <div class="rev-row">
+      <span class="tno">T-${String(t.no).padStart(2,'0')}${BUF.includes(t.no)?' <span style="font-size:9.5px;color:var(--purple-d)">이관</span>':''}</span>
+      <span class="chip ${t.fuel==='무연'?'g':'d'}">${t.fuel}</span>
+      <input type="number" inputmode="decimal" step="0.1" value="${t.drums}" data-i="${i}" data-k="drums" placeholder="?">
+      <input type="number" inputmode="decimal" step="0.1" value="${t.avg}" data-i="${i}" data-k="avg">
+    </div>`).join('');
+  $('revRows').querySelectorAll('input').forEach(inp=>{
+    inp.onchange = () => { tanks[+inp.dataset.i][inp.dataset.k] = inp.value===''?'':parseFloat(inp.value); };
+  });
+}
+
+$('btnBuild').onclick = () => {
+  ordReset(); $('ordResult').innerHTML=''; ordState.on=false;
+  if(tanks.some(t=>t.drums==='' || isNaN(t.drums))) return showErr('현재고가 비어있는 탱크가 있습니다. 값을 입력해 주세요.');
+  hideErr();
+  buildBoard();
+  $('step3').classList.remove('hide');
+  $('step3').scrollIntoView({behavior:'smooth'});
+};
+
+// ── 3단계: 보드 계산·렌더 ─────────────────────────
+function buildBoard(){
+  const base = new Date(); base.setHours(0,0,0,0);
+  tanks.forEach(t=>{
+    /* ── PC판 renderBoard stats 산식 그대로 ── */
+    t.buf = BUF.includes(t.no);
+    t.add = addOf(t.no);
+    t.eff = Math.round((t.drums + t.add)*10)/10;              // eff = stock + add
+    t.liters = Math.round(t.eff*200);
+    t.usable = Math.max(0, t.eff - DEAD);                     // 원본 usable
+    t.avail = Math.round(t.usable*10)/10;                     // 표시용
+    t.daysRaw = t.avg>0 ? t.usable/t.avg : Infinity;          // 원시 일수 (판정·날짜용)
+    t.empty = t.eff <= DEAD;                                  // 원본 empty
+    t.low = !t.buf && t.avg>0 && Number.isFinite(t.daysRaw) && t.daysRaw<=3;
+    t.days = t.avg>0 ? Math.round(t.daysRaw*10)/10 : null;    // 표시용 반올림
+    if(t.buf){ t.tag='보관'; t.due='—'; }
+    else if(!(t.avg>0)){ t.tag='—'; t.due='—'; }
+    else if(t.empty){ t.tag=t.days+'일'; t.due='소진'; }
+    else {
+      t.tag = t.days+'일';
+      /* 판매가능일 = 온전히 팔 수 있는 마지막 날. 마감 후 촬영이면 판매 시작 = 익일 */
+      const off = (typeof saleOff==='function') ? saleOff() : 0;
+      const F = Math.floor(t.daysRaw);
+      if(F<=0){ t.due = off ? '내일 소진' : '오늘 소진'; }
+      else {
+        const startVal = $('ordStart') && $('ordStart').value ? new Date($('ordStart').value+'T00:00:00') : new Date(base.getTime());
+        startVal.setDate(startVal.getDate() + off + F - 1);
+        t.due = '~'+(startVal.getMonth()+1)+'/'+startVal.getDate()+'('+WD[startVal.getDay()]+')';
+      }
+    }
+    t.room = Math.round((CAP - t.eff)*10)/10;   // 신버전: 여유공간 (음수=초과)
+  });
+
+  // 유종 합계 — 프리뷰 시 전→후 비교 (PC판 renderFuelSum)
+  const pct = (a,b)=>Math.round(a/b*1000)/10;
+  const chip = (name, list, barColor, borderColor, last) => {
+    const cap = list.length*CAP;
+    const before = Math.round(list.reduce((s,t)=>s+t.drums,0)*10)/10;
+    const after  = Math.round(list.reduce((s,t)=>s+t.eff,0)*10)/10;
+    const pB = pct(before,cap), pA = pct(after,cap);
+    const ch = previewOn && after!==before;
+    return `<div class="sum" style="border-color:${borderColor}${last?';margin-bottom:0':''}">
+      <span style="font-size:12px;font-weight:600">${name}</span>
+      <div class="bar"><i style="width:${Math.min(100,pB)}%;background:${barColor}"></i>${ch?`<i style="width:${Math.round(Math.max(0,Math.min(100,pA)-Math.min(100,pB))*100)/100}%;background:${barColor};opacity:.45"></i>`:''}</div>
+      ${ch?`<b>${pB}%</b><span style="font-size:11px">→</span><b style="color:${borderColor}">${pA}%</b><span>${before} → ${after}드럼 / ${cap}</span>`
+          :`<b>${pB}%</b><span>${before}드럼 / ${cap}</span>`}
+    </div>`;
+  };
+  const pvBadge = previewOn
+    ? `<div style="font-size:11px;color:var(--purple-d);background:var(--purple-bg);border-radius:8px;padding:6px 10px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:6px">● 입고 후 예상 표시 중 — 실제 재고는 변경되지 않았습니다 <button onclick="exitPreview()" style="font-size:10.5px;padding:2px 7px;border:1px solid var(--purple-d);border-radius:6px;background:#fff;color:var(--purple-d);white-space:nowrap">현재 재고 보기</button></div>`
+    : (Object.keys(ordPreview).length
+       ? `<div style="font-size:11px;color:var(--sub);background:var(--bg);border-radius:8px;padding:6px 10px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:6px">최근 발주 계산 있음 <button onclick="enterPreview()" style="font-size:10.5px;padding:2px 7px;border:1px solid var(--line2);border-radius:6px;background:#fff;white-space:nowrap">입고 후 예상 보기</button></div>` : '');
+  $('sumCard').innerHTML = pvBadge
+    + chip('무연 전체', tanks.filter(t=>t.fuel==='무연'), 'var(--amber)', 'var(--amber-d)', false)
+    + chip('경유 전체', tanks.filter(t=>t.fuel==='경유'), 'var(--green)', 'var(--green-d)', true);
+
+  /* ── 이관 권장 v2 (원본 그대로): 용량 상한 표시·순차 이관·이관 후 평균·경유 유지 가능 일수 ── */
+  const fmt1 = n=>Math.round(n*10)/10;
+  const sellers = tanks.filter(t=>!t.buf && t.fuel==='경유' && t.avg>0 && Number.isFinite(t.daysRaw));
+  const bufsT = tanks.filter(t=>t.buf);
+  const pool = bufsT.reduce((a,t)=>a+Math.max(0, t.eff-DEAD), 0);
+  const rec={}; let needTot=0, avgDays=0, afterAvg=0;
+  const capHit={};                                       // 용량 한계로 목표 못 채우는 탱크
+  if(sellers.length){
+    avgDays = sellers.reduce((a,t)=>a+t.daysRaw,0)/sellers.length;
+    const defs = sellers.filter(t=>t.daysRaw < avgDays - 1e-9)
+                        .map(t=>({no:t.no, days:t.daysRaw, avg:t.avg,
+                                  room: Math.max(0, CAP - t.eff),
+                                  need: (avgDays-t.daysRaw)*t.avg}))
+                        .filter(d=>d.need >= 0.5);
+    needTot = defs.reduce((a,d)=>a+Math.ceil(d.need),0);
+    if(needTot <= pool){
+      defs.forEach(d=>{ rec[d.no]=Math.ceil(d.need); });
+    } else if(defs.length){
+      const ds=[...defs].sort((a,b)=>a.days-b.days);
+      let lo=ds[0].days, hi=avgDays;
+      for(let it=0; it<40; it++){
+        const L=(lo+hi)/2;
+        const use=ds.reduce((a,d)=>a+Math.max(0,(L-d.days))*d.avg,0);
+        if(use>pool) hi=L; else lo=L;
+      }
+      ds.forEach(d=>{ const r=Math.floor(Math.max(0,(lo-d.days))*d.avg); if(r>0) rec[d.no]=r; });
+    }
+    defs.forEach(d=>{ if((rec[d.no]||0) > d.room + 0.01) capHit[d.no]=true; });
+    afterAvg = sellers.reduce((a,t)=>a + t.daysRaw + (rec[t.no]||0)/(t.avg||1e9), 0) / sellers.length;
+  }
+  /* 경유 유지 가능 일수 (maximin): 이관 최적 배분 시 병목 탱크가 버티는 일수 */
+  const sellUsable = sellers.reduce((a,t)=>a+Math.max(0, t.eff-DEAD), 0);
+  const totalAvg   = sellers.reduce((a,t)=>a+t.avg, 0);
+  let holdDays = Infinity, bottleneck = null;
+  if(totalAvg>0 && sellers.length){
+    const ds=[...sellers].map(t=>({no:t.no, days:t.daysRaw, avg:t.avg})).sort((a,b)=>a.days-b.days);
+    bottleneck = ds[0].no;
+    let lo=ds[0].days, hi=(sellUsable+pool)/totalAvg;
+    if(hi<lo) hi=lo;
+    for(let it=0; it<48; it++){
+      const L=(lo+hi)/2;
+      const use=ds.reduce((a,d)=>a+Math.max(0,(L-d.days))*d.avg,0);
+      if(use>pool) hi=L; else lo=L;
+    }
+    holdDays = lo;
+  }
+  const holdSellTxt = (function(){
+    if(!Number.isFinite(holdDays)) return null;
+    const off = (typeof saleOff==='function') ? saleOff() : 0;
+    const F = Math.floor(holdDays);
+    if(F<=0) return '<span style="color:var(--red-d);font-weight:700">'+(off?'내일':'오늘')+' 소진</span>';
+    const sd = $('ordStart') && $('ordStart').value ? new Date($('ordStart').value+'T00:00:00') : new Date(base.getTime());
+    sd.setDate(sd.getDate()+off+F-1);
+    return '~'+(sd.getMonth()+1)+'/'+sd.getDate()+'('+WD[sd.getDay()]+')';
+  })();
+  const holdLow = Number.isFinite(holdDays) && holdDays < 3;
+  const totalTxt = totalAvg>0
+    ? `<span class="totcover ${holdLow?'lowc':''}">경유 유지 가능 <b>${fmt1(holdDays)}일</b> · 판매가능 <b>${holdSellTxt}</b> <span class="tcsub">(이관 최적 배분 시 · 병목 T-${String(bottleneck).padStart(2,'0')})</span></span>`
+    : '';
+  const recTotAll = Object.values(rec).reduce((a,b)=>a+b,0);
+  const shortTot = Math.max(0, needTot - recTotAll);
+
+  // 보드 테이블
+  const td='', rows=[];
+  const cell = (html)=>`<td>${html}</td>`;
+  rows.push('<tr><td class="lab"></td>'+tanks.map(t=>cell(`
+     <div style="font-size:12px;font-weight:600">${String(t.no).padStart(2,'0')}</div>
+     <div><span class="chip ${t.fuel==='무연'?'g':'d'}" style="padding:1px 5px">${t.fuel}</span></div>
+     <div style="height:13px">${t.buf?'<span style="font-size:9.5px;padding:0 4px;border-radius:4px;background:var(--purple-bg);color:var(--purple-d);font-weight:600">이관</span>':''}</div>`)).join('')+'</tr>');
+  rows.push('<tr><td class="lab">LEVEL</td>'+tanks.map(t=>{
+    const pB = Math.round(Math.max(0, Math.min(100, t.drums/CAP*100))*100)/100;
+    const p  = Math.round(Math.max(0, Math.min(100, t.eff/CAP*100))*100)/100;
+    const pvPct = t.add>0 ? Math.round(Math.max(0, p-pB)*100)/100 : 0;
+    return cell(`<div class="tube${t.low?' low':''}">
+      <div class="pct">${Math.round(p*10)/10}%</div>
+      ${t.low?'<div class="lowtag">LOW</div>':''}
+      ${pvPct>0?`<div style="position:absolute;bottom:${pB}%;left:0;right:0;height:${pvPct}%;background:repeating-linear-gradient(45deg,${t.fuel==='무연'?'rgba(239,159,39,.55)':'rgba(29,158,117,.55)'} 0 5px,transparent 5px 10px);border-top:1.5px dashed ${t.fuel==='무연'?'var(--amber-d)':'var(--green-d)'}"></div>`:''}
+      <div class="fill" style="height:${pB}%;background:${t.fuel==='무연'?'var(--amber)':'var(--green)'}"></div>
+      <div class="dead"></div></div>`);
+  }).join('')+'</tr>');
+  const row = (lab, fn)=>rows.push(`<tr><td class="lab">${lab}</td>`+tanks.map(fn).join('')+'</tr>');
+  row(previewOn?'예상재고':'현재고', t=>cell(`<b style="color:${t.empty&&!t.buf?'var(--red-d)':(t.fuel==='무연'?'var(--amber-d)':'var(--green-d)')}">${t.eff}</b>${t.add>0?`<span style="font-size:9.5px;color:var(--purple-d)"> +${t.add}</span>`:''}`));
+  row('리터', t=>cell(`<span style="font-size:10.5px;color:var(--sub)">${t.liters.toLocaleString()}</span>`));
+  row('가용 −5', t=>cell(`<b>${t.avail}</b>`));
+  row('일평균', t=>cell(`<span style="font-size:11px;color:var(--sub)">${t.avg||0}</span>`));
+  row('잔여일수', t=>cell(`<b style="color:${t.low?'var(--red-d)':'var(--ink)'}">${t.buf?'보관':t.avg>0?t.days+'일':'—'}</b>`));
+  row('판매가능', t=>cell(`<span style="font-size:10.5px;color:${(((t.empty||t.due==='오늘 소진'||t.due==='내일 소진')&&!t.buf)||t.low)?'var(--red-d)':'var(--sub)'}">${t.buf?'—':t.empty?'소진':t.avg>0?t.due:'—'}</span>`));
+  row('여유공간', t=>cell(`<span style="font-size:11px;font-weight:600;color:${t.room<0?'var(--red-d)':'var(--green-d)'}">${t.room}</span>`));
+  row('이관권장', t=>cell(t.buf ? `<span style="font-size:11px;color:var(--purple-d);font-weight:600">보유 ${Math.round(Math.max(0,t.eff-DEAD)*10)/10}</span>`
+      : t.fuel!=='경유' ? `<span style="color:var(--mut)">—</span>`
+      : (rec[t.no] ? `<span style="font-size:11px;color:var(--purple-d);font-weight:600">+${rec[t.no]}</span>` : `<span style="color:var(--mut)">—</span>`)));
+  $('boardTb').innerHTML = rows.join('');
+
+  const today = new Date();
+  const baseDt = metaInfo.dt || today;
+  $('boardMeta').textContent = `기준일 ${fmtDm(baseDt,false)}` + (metaInfo.dt ? ` · 촬영 ${String(metaInfo.dt.getHours()).padStart(2,'0')}:${String(metaInfo.dt.getMinutes()).padStart(2,'0')}` : '');
+  if(!sellers.length){ $('footLine').innerHTML=''; $('footLine').style.display='none'; }
+  else { $('footLine').style.display='';
+    if(!needTot){
+      $('footLine').innerHTML = `이관 권장 — 경유 판매탱크 평균 ${fmt1(avgDays)}일 · 전 탱크 평균 수준, 이관 불필요 · 이관탱크 보유 ${fmt1(pool)}드럼<br>${totalTxt}`;
+    } else {
+      const capNos = Object.keys(rec).filter(no=>capHit[no]);
+      $('footLine').innerHTML = `${totalTxt}<br><b>이관 권장</b> — 경유 평균 ${fmt1(avgDays)}일 기준: ${Object.keys(rec).map(no=>`T-${String(no).padStart(2,'0')} +${rec[no]}${capHit[no]?' <span class="caphit">(순차 이관)</span>':''}`).join(', ')||'—'} · 이관 ${fmt1(recTotAll)}드럼 / 보유 ${fmt1(pool)}드럼 → <b>이관 후 경유 평균 ~${fmt1(afterAvg)}일</b> ${shortTot>0?`<b style="color:var(--red-d)">⚠ 이관 물량 ${shortTot}드럼 부족 — 부족분은 발주로 보충</b>`:`<b>✓ 이관 후 보관 잔여 ${fmt1(pool-recTotAll)}드럼</b>`}${capNos.length?`<span class="capnote">· ${capNos.map(no=>'T-'+String(no).padStart(2,'0')).join('·')}는 지금 여유를 넘는 몫 — 판매로 공간이 생기는 대로 순차 이관</span>`:''}`;
+    }
+  }
+}
+
+// ── API 키 관리 (이 기기 브라우저에만 저장) ─────────
+function getKey(){ try{ return localStorage.getItem('tank_api_key')||''; }catch(e){ return ''; } }
+function openKeyCard(){ $('keyCard').classList.remove('hide'); $('keyInput').value=getKey(); }
+$('keyOpen').onclick = e => { e.preventDefault(); openKeyCard(); };
+$('keySave').onclick = () => {
+  const v = $('keyInput').value.trim();
+  if(!v.startsWith('sk-ant')) return showErr('키 형식이 올바르지 않습니다 (sk-ant로 시작).');
+  try{ localStorage.setItem('tank_api_key', v); }catch(e){}
+  hideErr(); $('keyCard').classList.add('hide'); toast('API 키 저장됨');
+};
+if(!getKey()) openKeyCard();
+
+
+// ═══ tank.html(데스크톱 최신v2) 발주·배정 엔진 — 원본 코드 그대로 이식 (회차재편·오더확정 포함) ═══
+const MIN_COMP = 20;
+const TRUCK_TYPES = {
+  g: [ {id:'g140', label:'무연 140드럼차', cap:140, comps:[20,20,20,20,20,20,20]} ],
+  d: [ {id:'d155', label:'경유 155드럼차', cap:155, comps:[35,20,20,20,20,20,20]},
+       {id:'d160', label:'경유 160드럼차', cap:160, comps:[20,20,20,20,20,20,20,20]} ]
+};
+function typeOf(ft,id){ return TRUCK_TYPES[ft].find(t=>t.id===id); }
+function compsForLoad(typeComps, load){
+  let best=null;
+  const n=typeComps.length;
+  for(let m=0;m<(1<<n);m++){
+    let s=0; const arr=[];
+    for(let i=0;i<n;i++) if(m&(1<<i)){ s+=typeComps[i]; arr.push(typeComps[i]); }
+    if(s===load && (!best || arr.length<best.length)) best=arr.slice().sort((a,b)=>b-a);
+  }
+  return best;
+}
+function achievableLoads(typeComps){
+  const set=new Set([0]);
+  typeComps.forEach(c=>{ [...set].forEach(s=>set.add(s+c)); });
+  set.delete(0);
+  return [...set].sort((a,b)=>a-b);
+}
+function snapLoad(typeComps, want){
+  const av = achievableLoads(typeComps);
+  let best=null;
+  for(const v of av) if(v<=want) best=v;
+  return best!=null ? best : av[0];
+}
+
+function buildTrucks(ft, fleet){
+  const trucks=[]; let no=0; const errs=[];
+  for(const row of fleet){
+    const ty = typeOf(ft,row.type);
+    if(!ty || row.count<=0) continue;
+    const comps = compsForLoad(ty.comps, row.load);
+    if(!comps){ errs.push(`${ty.label} 적재량 ${row.load}드럼은 칸 조합으로 만들 수 없습니다.`); continue; }
+    for(let k=0;k<row.count;k++){
+      no++;
+      trucks.push({no, typeId:ty.id, name:ty.label, cap:ty.cap, load:row.load, comps:comps.slice()});
+    }
+  }
+  return {trucks, errs};
+}
+
+
+function summarizeComps(arr){
+  const m={}; arr.forEach(s=>m[s]=(m[s]||0)+1);
+  return Object.keys(m).sort((a,b)=>b-a).map(k=>m[k]>1?`${k}×${m[k]}`:k).join(' + ');
+}
+function tankOrderCalc(ft, D, tanksIn, fleetOverride, manualIn, orderIn, lockedIn){
+  const tanks = tanksIn;
+  const todayAdjActive = () => false;
+  const NOZ_COUNT = 22; const noz = {map:Array(22).fill(0)}; const nozToday = {liters:Array(22).fill(0)};
+  const fleetState = { g:null, d:null };
+  if(fleetOverride) fleetState[ft] = fleetOverride;
+  const manualAssign = { g:null, d:null }; if(manualIn) manualAssign[ft]=manualIn;
+  const manualOrder = { g:[], d:[] }; if(orderIn) manualOrder[ft]=orderIn;
+  const lockedPlan = { g:null, d:null }; if(lockedIn) lockedPlan[ft]=lockedIn;
+  const lastAlloc = {}; const lastCalc = { g:null, d:null };
+  const dStart={value:''}, dEnd={value:''};
+  const adj = todayAdjActive();                       // 금일 기출고 차감 (오늘 자 노즐 출고 데이터가 있을 때만)
+  const outOf = tno=>{
+    if(!adj) return null;
+    let l=0;
+    for(let i=0;i<NOZ_COUNT;i++) if(noz.map[i]===tno) l+=nozToday.liters[i]||0;
+    return l/200;
+  };
+  const list = tanks.filter(t=>t.type===ft);
+  const rows = list.map(t=>{
+    const out = outOf(t.no);
+    const demand = adj && out!=null
+      ? t.avg*(D-1) + Math.max(0, t.avg - out)        // 오늘 몫 = 일평균 − 금일 기출고 (음수 금지)
+      : t.avg*D;
+    const short = Math.max(0, Math.ceil(demand + DEAD - t.stock));
+    const headroom = Math.max(0, t.cap - t.stock);
+    return {t, buf:t.buf, short, headroom, effDirect: Math.min(short, headroom), assigned:0, comps:[]};
+  });
+  const reg = rows.filter(r=>!r.buf), bufs = rows.filter(r=>r.buf);
+  const totalShortRaw = reg.reduce((s,r)=>s+r.short,0);
+  /* ── 이관탱크 보유분 선(先)충당: 부족량을 이관으로 먼저 해결하고, 발주는 잔여분만 ──
+     이관탱크가 완충 재고인 만큼, 보유분으로 커버되는 부족은 차량을 부르지 않는다. */
+  const bufPool0 = bufs.reduce((s,r)=>s+Math.max(0, r.t.stock - DEAD),0);
+  let bufLeft = bufPool0;
+  const preCover = {};                                 // {탱크no: 이관 충당량}
+  [...reg].filter(r=>r.short>0).sort((a,b)=>{
+      const da=(a.t.stock-DEAD)/(a.t.avg||1e9), db=(b.t.stock-DEAD)/(b.t.avg||1e9);
+      return da-db;                                    // 잔여일수 낮은 탱크부터 충당
+    }).forEach(r=>{
+      if(bufLeft<=0) return;
+      const c = Math.min(r.short, bufLeft);
+      if(c>0){ preCover[r.t.no]=c; bufLeft-=c; r.short-=c; }
+    });
+  const preCoverTot = Object.values(preCover).reduce((a,b)=>a+b,0);
+  const totalShort = reg.reduce((s,r)=>s+r.short,0);   // 이관 충당 후 잔여 부족
+  const directAll = rows.reduce((s,r)=>s+r.effDirect,0);
+  const overflow = reg.reduce((s,r)=>s+(r.short-r.effDirect),0);
+  const bufSpare = bufs.reduce((s,r)=>s+(r.headroom-r.effDirect),0);
+  const viaBuf = Math.min(overflow, bufSpare);
+  const totalEff = directAll + viaBuf;
+
+  if(fleetState[ft]==null) fleetState[ft] = (()=>{
+    const p = TRUCK_TYPES[ft][0];
+    const n = Math.ceil(totalEff/p.cap);
+    return n>0 ? [{type:p.id, count:n, load:p.cap}] : [];
+  })();
+  const fleet = fleetState[ft];
+  const locked = lockedPlan[ft];
+  const {trucks, errs} = locked
+    ? {trucks: locked.trucks.map(t=>({...t, comps:[]})), errs: []}
+    : buildTrucks(ft, fleet);
+  const nTrucks = trucks.length;
+  const totalLoad = trucks.reduce((s,t)=>s+t.load,0);
+
+  const comps=[];
+  let unfit=0;
+  const packErrs=[];
+  const manualSplits=[];   // 수동 칸 분리(부분 적재) 안내 — 오류 아님
+  if(locked){
+    /* ── 📌 확정된 오더: 저장된 회차 구성 그대로 — 재계산·재고 변경에도 불변 ── */
+    locked.comps.forEach(c=>comps.push({truck:c.truck, size:c.size, to:c.to}));
+    rows.forEach(r=>{ r.assigned = comps.filter(c=>c.to===r.t.no).reduce((s,c)=>s+c.size,0); });
+  } else if(manualAssign[ft]){
+    /* ── 수동 배정 (자유 수량): 하화는 칸 구성과 무관 — 기사님이 밸브로 조절
+         · 탱크별 입력 총량 그대로 존중 (탱크 만재 초과만 보정)
+         · 회차 배치 = 순차 배분, 제약은 회차 총 상차량뿐 (칸 분해·부분적재 개념 없음)
+         · 총 배정이 상차량을 넘으면 넘는 만큼 미상차 경고 ── */
+    const targets = manualAssign[ft];
+    const truckRem = trucks.map(t=>({no:t.no, rem:t.load}));
+    const prio = no => { const i = manualOrder[ft].indexOf(no); return i<0 ? 999 : i; };
+    const order = rows.filter(r=>(targets[r.t.no]||0)>0)
+                      .sort((a,b)=> prio(a.t.no)-prio(b.t.no) || (targets[b.t.no]||0)-(targets[a.t.no]||0));
+    for(const r of order){
+      const asked = targets[r.t.no]||0;
+      let want = asked;                                   // [폰앱] 만재 초과 입력 허용
+      if(asked > r.headroom) packErrs.push(`T-${String(r.t.no).padStart(2,'0')}: 만재 초과 ${Math.round((asked-r.headroom)*10)/10}드럼 — 하화 불가, 배정 축소 필요`);
+      r.assigned = want;
+      targets[r.t.no] = want;
+      let remain = Math.min(want, r.headroom);            // [폰앱] 실물 상차는 만재까지만
+      for(const tr of truckRem){
+        if(remain<=0) break;
+        if(tr.rem<=0) continue;
+        const g = Math.min(tr.rem, remain);
+        comps.push({truck:tr.no, size:g, to:r.t.no});
+        r.comps.push(g);
+        tr.rem -= g; remain -= g;
+      }
+      // remain>0 = 총 상차량 초과분 — 아래 미상차 경고로 안내
+    }
+    Object.keys(targets).forEach(no=>{ if(!(targets[no]>0)) delete targets[no]; });
+  } else {
+    /* ── 자동 배정 (최소 잔여일수 극대화) ── */
+  comps.length=0;
+  trucks.forEach(t=>t.comps.forEach(sz=>comps.push({truck:t.no,size:sz,to:null})));
+  comps.sort((a,b)=>b.size-a.size);
+  const earm={};                                          // 탱크별 이관 적립분
+  const effDays = r=>{
+    const supply = r.t.stock + r.assigned + (earm[r.t.no]||0);
+    if(r.t.avg>0) return (supply-DEAD)/r.t.avg;
+    return (r.short - r.assigned - (earm[r.t.no]||0) > 0) ? -1e9 : Infinity;
+  };
+  comps.forEach(c=>{
+    const cand = reg.filter(r=>effDays(r)<Infinity).sort((a,b)=>effDays(a)-effDays(b));
+    let placed=false;
+    for(const r of cand){
+      if(r.headroom - r.assigned >= c.size){              // 직접 하화
+        r.assigned+=c.size; r.comps.push(c.size); c.to=r.t.no; placed=true; break;
+      }
+      const bf=bufs.filter(b=>(b.headroom-b.assigned)>=c.size);
+      if(bf.length){                                      // 만재 → 이관탱크에 적립
+        let bb=bf[0]; bf.forEach(b=>{ if((b.headroom-b.assigned)>(bb.headroom-bb.assigned)) bb=b; });
+        bb.assigned+=c.size; bb.comps.push(c.size); c.to=bb.t.no;
+        earm[r.t.no]=(earm[r.t.no]||0)+c.size; placed=true; break;
+      }
+    }
+    if(!placed){                                          // 잉여: 남는 공간 순
+      const fitReg=reg.filter(r=>(r.headroom-r.assigned)>=c.size);
+      if(fitReg.length){
+        let m=fitReg[0]; fitReg.forEach(r=>{ if(effDays(r)<effDays(m)) m=r; });
+        m.assigned+=c.size; m.comps.push(c.size); c.to=m.t.no;
+      } else {
+        const bf=bufs.filter(b=>(b.headroom-b.assigned)>=c.size);
+        if(bf.length){
+          let bb=bf[0]; bf.forEach(b=>{ if((b.headroom-b.assigned)>(bb.headroom-bb.assigned)) bb=b; });
+          bb.assigned+=c.size; bb.comps.push(c.size); c.to=bb.t.no;
+        } else unfit+=c.size;
+      }
+    }
+  });
+  /* ── 회차 재편(방문 최소화): 탱크별 총량은 그대로, 큰 물량부터 빈 공간이 가장 큰 차량에 몰아서 배치
+       → 한 차가 여러 탱크를 잘게 도는 일을 없애 하화 시간·동선을 최소화 ── */
+  {
+    const totals={};
+    comps.forEach(c=>{ if(c.to) totals[c.to]=(totals[c.to]||0)+c.size; });
+    comps.length=0;
+    rows.forEach(r=>{ r.comps.length=0; });
+    /* ── 칸 단위 배치: 탱크로리 실물 칸(155차=35+20×6, 160차=20×8, 140차=20×7)에 맞춰
+         각 탱크 총량을 35×a + 20×b 로 분해해 배치 — 5·15드럼 같은 존재하지 않는 조각 방지 ── */
+    const slotState = trucks.map(t=>({no:t.no,
+      s35:(t.comps||[]).filter(x=>x===35).length,
+      s20:(t.comps||[]).filter(x=>x===20).length}));
+    const S35 = slotState.reduce((a,t)=>a+t.s35,0);
+    const entries = Object.keys(totals).map(no=>({no:+no, amt:totals[no]}));
+    const baseA = r => ({0:0,15:1,10:2,5:3})[r];
+    let unitOK = entries.length>0 && entries.every(e=>e.amt%5===0) && slotState.every(t=>t.s35+t.s20>0);
+    let decomp = null;
+    if(unitOK){
+      decomp = entries.map(e=>{
+        const a0 = baseA(e.amt%20);
+        return (a0==null || 35*a0>e.amt) ? null : {no:e.no, amt:e.amt, a:a0, b:(e.amt-35*a0)/20};
+      });
+      unitOK = decomp.every(d=>d);
+    }
+    if(unitOK){
+      let extra = S35 - decomp.reduce((a,d)=>a+d.a,0);
+      if(extra<0 || extra%4!==0) unitOK=false;
+      else while(extra>0){
+        const cand=decomp.filter(d=>d.b>=7).sort((x,y)=>y.b-x.b)[0];   // 35×4 = 20×7 치환
+        if(!cand){ unitOK=false; break; }
+        cand.a+=4; cand.b-=7; extra-=4;
+      }
+    }
+    if(unitOK){
+      decomp.sort((x,y)=>y.amt-x.amt).forEach(d=>{
+        let a=d.a, b=d.b;
+        while(a>0 || b>0){
+          const has = tn => comps.some(c=>c.truck===tn && c.to===d.no);
+          let pick=null;
+          slotState.forEach(t=>{
+            if(!((a>0 && t.s35>0) || (b>0 && t.s20>0))) return;
+            const pri = (has(t.no)?1e9:0) + t.s35*35 + t.s20*20;
+            if(!pick || pri>pick.pri) pick={t, pri};
+          });
+          if(!pick) break;
+          const t=pick.t; let put=0;
+          while(a>0 && t.s35>0){ t.s35--; a--; put+=35; }
+          while(b>0 && t.s20>0){ t.s20--; b--; put+=20; }
+          if(put>0) comps.push({truck:t.no, size:put, to:d.no});
+          else break;
+        }
+      });
+    } else {
+      /* 폴백(총량이 칸으로 정확히 안 나뉘는 드문 경우): 자유 수량 순차 배분 */
+      const truckRem = trucks.map(t=>({no:t.no, rem:t.load}));
+      entries.sort((x,y)=>y.amt-x.amt).forEach(it=>{
+        let remain=it.amt;
+        while(remain>0){
+          let tr=null; truckRem.forEach(t=>{ if(t.rem>0 && (!tr || t.rem>tr.rem)) tr=t; });
+          if(!tr) break;
+          const g=Math.min(tr.rem, remain);
+          comps.push({truck:tr.no, size:g, to:it.no});
+          tr.rem-=g; remain-=g;
+        }
+      });
+    }
+    /* 최소 2탱크 보정: 단일 탱크만 싣는 회차는 다른 회차와 20드럼 맞교환 — 2라인 동시 하화 */
+    const truckTankSet = tn => [...new Set(comps.filter(c=>c.truck===tn && c.to).map(c=>c.to))];
+    trucks.forEach(t=>{
+      const tt = truckTankSet(t.no);
+      if(tt.length!==1) return;
+      const solo = tt[0];
+      for(const o of trucks){
+        if(o.no===t.no) continue;
+        if(truckTankSet(o.no).length<2) continue;
+        const cand = comps.filter(c=>c.truck===o.no && c.to && c.to!==solo)
+                          .sort((a,b)=>a.size-b.size)[0];
+        if(!cand) continue;
+        const sw = Math.min(20, cand.size);
+        const mine = comps.filter(c=>c.truck===t.no && c.to===solo).sort((a,b)=>b.size-a.size)[0];
+        if(!mine || mine.size<=sw) continue;
+        if(mine.size-sw===15 || (cand.size>sw && cand.size-sw===15)) continue;   // 15드럼 조각 생성 금지
+        mine.size -= sw;                                   // 단독차: solo 물량 sw 줄이고
+        comps.push({truck:o.no, size:sw, to:solo});        // 상대차가 그만큼 solo 하화
+        if(cand.size===sw){ cand.truck = t.no; }           // 상대차의 다른 탱크 물량 sw를 단독차로
+        else { cand.size -= sw; comps.push({truck:t.no, size:sw, to:cand.to}); }
+        break;
+      }
+    });
+    /* 같은 회차·같은 탱크 조각 병합 */
+    const merged={};
+    comps.forEach(c=>{ if(!c.to) return; const k=c.truck+'-'+c.to; merged[k]=(merged[k]||0)+c.size; });
+    comps.length=0;
+    Object.keys(merged).forEach(k=>{ const [tk,to]=k.split('-'); comps.push({truck:+tk, size:merged[k], to:+to}); });
+    rows.forEach(r=>{ r.comps = comps.filter(c=>c.to===r.t.no).map(c=>c.size); });
+    comps.sort((a,b)=>a.truck-b.truck || b.size-a.size);
+  }
+  }
+  rows.forEach(r=>{
+    r.placed = comps.filter(c=>c.to===r.t.no).reduce((s,c)=>s+c.size,0);   // 실제 상차분 (칸 기준)
+    if(r.placed>0) lastAlloc[r.t.no] = r.placed;                            // 빗금·입고 예상은 실린 만큼만
+    const overCap = Math.max(0, r.assigned - r.headroom);
+    const shortLoad = Math.round((r.assigned - r.placed - overCap)*10)/10;
+    if(shortLoad > 0.01)
+      packErrs.push(`T-${String(r.t.no).padStart(2,'0')}: 배정 ${r.assigned}드럼 중 ${shortLoad}드럼 미상차 (상차량 부족) — 차량 추가 또는 배정 조정 필요`);
+  });
+
+  /* 이관 계획: 이번 오더로 이관탱크에 실린 총량을 연속 재분배
+     (avg=0 부족탱크 우선 → 이후 최소 잔여일수 극대화 water-fill, 이분탐색) */
+  const bufPool = bufs.reduce((s,b)=>s+b.assigned,0);
+  const shares = {}; let leftover = bufPool;
+  reg.filter(r=>!(r.t.avg>0) && r.short-r.assigned>0).forEach(r=>{
+    if(leftover<=0) return;
+    const g = Math.min(leftover, r.short-r.assigned);
+    shares[r.t.no]=(shares[r.t.no]||0)+g; leftover-=g;
+  });
+  const items = reg.filter(r=>r.t.avg>0).map(r=>({no:r.t.no, avg:r.t.avg, supply:r.t.stock+r.assigned}));
+  if(items.length && leftover>0){
+    let lo=Math.min(...items.map(x=>(x.supply-DEAD)/x.avg));
+    let hi=Math.max(...items.map(x=>(x.supply-DEAD)/x.avg)) + leftover/items.reduce((s,x)=>s+x.avg,0) + 1;
+    for(let k=0;k<80;k++){
+      const mid=(lo+hi)/2;
+      const need=items.reduce((s,x)=>s+Math.max(0, x.avg*mid+DEAD-x.supply),0);
+      if(need>leftover) hi=mid; else lo=mid;
+    }
+    let used=0;
+    items.forEach(x=>{
+      const g=Math.max(0, Math.round((x.avg*lo+DEAD-x.supply)*10)/10);
+      if(g>0){ shares[x.no]=(shares[x.no]||0)+g; used+=g; }
+    });
+    leftover=Math.max(0, Math.round((leftover-used)*10)/10);
+  }
+  const plan = Object.keys(shares).map(no=>({no:+no, amt:Math.round(shares[no]*10)/10}))
+                     .filter(p=>p.amt>0).sort((a,b)=>a.no-b.no);
+  const planTotal = Math.round(plan.reduce((s,p)=>s+p.amt,0)*10)/10;
+  const uncovered = Math.max(0, Math.ceil(reg.reduce((s,r)=>s+Math.max(0, r.short - r.assigned - (shares[r.t.no]||0)),0)));
+  const surplus = totalLoad - totalEff;
+  function planAmt(pl,no){ const p=pl.find(x=>x.no===no); return p?p.amt:0; }
+  const canMoreTrucksHelp = uncovered>0 && (
+    reg.some(r=>(r.headroom-r.assigned)>=MIN_COMP) ||
+    bufs.some(r=>(r.headroom-r.assigned)>=MIN_COMP));
+  const minDaysAch = (()=>{
+    const ds = reg.filter(r=>r.t.avg>0).map(r=>(r.t.stock+r.assigned+(shares[r.t.no]||0)-DEAD)/r.t.avg);
+    return ds.length ? Math.min(...ds) : Infinity;
+  })();
+
+  lastCalc[ft] = {
+    D, nTrucks, totalShort, totalLoad, surplus,
+    dStart: dStart.value, dEnd: dEnd.value,
+    trucks: trucks.map(t=>({no:t.no, name:t.name, load:t.load})),
+    rows: rows.map(r=>({no:r.t.no, buf:r.buf, stock:r.t.stock, avg:r.t.avg, short:r.short, assigned:r.assigned})),
+    comps: comps.map(c=>({truck:c.truck, size:c.size, to:c.to})),
+    plan: plan.slice(), bufSources: bufs.filter(r=>r.assigned>0).map(r=>({no:r.t.no, amt:r.assigned}))
+  };
+
+
+  return {
+    D, totalShortRaw, preCover, preCoverTot, bufPool0, totalShort,
+    directAll, viaBuf, totalEff, nTrucks, totalLoad,
+    unfit, uncovered, minDaysAch, fleet: fleetState[ft],
+    trucks: trucks.map(t=>({no:t.no, name:t.name, load:t.load})),
+    comps: comps.filter(c=>c.to).map(c=>({truck:c.truck, size:c.size, to:c.to})),
+    rows: rows.map(r=>({no:r.t.no, buf:r.buf, stock:r.t.stock, avg:r.t.avg, cap:r.t.cap,
+                       short:r.short, assigned:r.assigned, placed:r.placed})),
+    plan, planTotal, leftover, shares, packErrs, errs, canMoreTrucksHelp,
+    manualOut: manualAssign[ft], manualMode: !!manualIn, locked: !!lockedIn
+  };
+}
+
+// ── 발주 UI (PC판 동일: 차량구성 편집 + 수동 하화배정) ──
+(function initOrderDates(){
+  const t = new Date();
+  const e = new Date(); e.setDate(e.getDate()+4);
+  $('ordStart').value = t.toISOString().slice(0,10);
+  $('ordEnd').value = e.toISOString().slice(0,10);
+})();
+
+const ordState = { fleet:{g:null,d:null}, manual:{g:null,d:null}, order:{g:[],d:[]}, last:{g:null,d:null}, locked:{g:null,d:null}, on:false };
+let ordPreview = {};   // PC판 lastAlloc — {탱크no: 실제 상차분}
+let previewOn = false; // PC판 previewOn
+function addOf(no){ return (previewOn && ordPreview[no]) ? ordPreview[no] : 0; }
+window.enterPreview = () => { if(Object.keys(ordPreview).length){ previewOn = true; buildBoard(); } };
+window.exitPreview  = () => { previewOn = false; buildBoard(); };
+function ordReset(){ ordState.fleet={g:null,d:null}; ordState.manual={g:null,d:null}; ordState.order={g:[],d:[]}; ordState.last={g:null,d:null}; ordPreview={}; previewOn=false; }  // locked(확정)는 원본처럼 유지 — 해제는 수동으로만
+
+function saleOff(){ const c=$('ordClosed'); return (c&&c.checked)?1:0; }   // 1 = 마감 후 (기준일 판매 제외)
+function autoClosed(dt){ const h=(dt||new Date()).getHours(); return h>=20; }
+$('ordClosed').onchange = () => { buildBoard(); if(ordState.on) recalcOrder(); };
+(function initClosed(){ $('ordClosed').checked = autoClosed(new Date()); })();
+
+function ordDays(){
+  return Math.round((new Date($('ordEnd').value) - new Date($('ordStart').value)) / 864e5) + 1;
+}
+function mkList(ft){
+  return tanks.filter(t => (ft==='g') === (t.fuel==='무연'))
+    .map(t => ({no:t.no, type:ft, cap:250, stock:t.drums, avg:t.avg||0, buf:BUF.includes(t.no)}));
+}
+function fmtN1(n){ return Number.isFinite(n) ? (Math.round(n*10)/10).toLocaleString('ko-KR',{maximumFractionDigits:1}) : '∞'; }
+
+$('btnOrder').onclick = () => {
+  if(!tanks.length || tanks.some(t=>t.drums==='' || isNaN(t.drums)))
+    return showErr('먼저 사진 판독(또는 2단계 값 입력) 후 보드를 생성해 주세요.');
+  hideErr();
+  if(ordDays() < 1) return showErr('목표일이 기준일보다 빠릅니다.');
+  ordState.on = true;
+  recalcOrder();
+};
+$('ordStart').onchange = $('ordEnd').onchange = () => { if(ordState.on && ordDays()>=1) recalcOrder(); };
+
+function recalcOrder(){
+  const D = ordDays();
+  const effD = Math.max(0, D - saleOff());          // 마감 후 촬영이면 기준일 수요 제외
+  for(const ft of ['g','d']){
+    const r = tankOrderCalc(ft, effD, mkList(ft), ordState.fleet[ft],
+                            ordState.manual[ft], ordState.order[ft], ordState.locked[ft]);
+    ordState.fleet[ft] = r.fleet;
+    if(ordState.manual[ft]) ordState.manual[ft] = r.manualOut;
+    ordState.last[ft] = r;
+  }
+  /* PC판 lastAlloc 연동: 실린 만큼(placed)만 빗금 */
+  ordPreview = {};
+  for(const ft of ['g','d']){
+    (ordState.last[ft].rows||[]).forEach(x=>{
+      const pv = x.placed!=null ? x.placed : x.assigned;
+      if(pv>0) ordPreview[x.no] = Math.round(pv*10)/10;
+    });
+  }
+  previewOn = Object.keys(ordPreview).length > 0;   // PC판 calc()와 동일
+  buildBoard();
+  $('ordResult').innerHTML =
+    '<div style="font-size:12px;color:var(--sub);margin-bottom:8px">' +
+    $('ordStart').value.slice(5).replace('-','/') + ' ~ ' + $('ordEnd').value.slice(5).replace('-','/') +
+    ' · 총 ' + D + '일' + (saleOff()? ' (마감 후 기준 — 실수요 ' + effD + '일치)' : '치') + ' + 데드스톡 5드럼 기준</div>' +
+    renderOrderFuel('g', ordState.last.g) + renderOrderFuel('d', ordState.last.d);
+}
+
+/* ── 원본 이식: 하화 공간 가드 (칸 단위 실효 공간) ── */
+function fleetUnits(ft){
+  const fl = ordState.fleet[ft];
+  const src = (fl && fl.length) ? fl.map(r=>typeOf(ft, r.type)) : TRUCK_TYPES[ft];
+  const set = new Set();
+  src.forEach(ty=>ty.comps.forEach(c=>set.add(c)));
+  return set;
+}
+function maxCompFill(h, units){
+  const has35 = !units || units.has(35);
+  let best = 20*Math.floor(h/20);
+  if(has35) for(let b2=1; 35*b2<=h; b2++){
+    const v = 35*b2 + 20*Math.floor((h-35*b2)/20);
+    if(v>best) best=v;
+  }
+  return best;
+}
+function fuelSpaceEff(ft){
+  const u = fleetUnits(ft);
+  return mkList(ft).reduce((a,t)=>a+maxCompFill(Math.max(0, t.cap - t.stock), u), 0);
+}
+function fleetLoadTotal(ft){ return (ordState.fleet[ft]||[]).reduce((a,r)=>a+r.count*r.load, 0); }
+function fleetSpaceGuard(ft, newTotal){
+  const space = fuelSpaceEff(ft);
+  if(newTotal > space){
+    toast('⚠ 차량 추가/변경 불가 — '+(ft==='d'?'경유':'무연')+' 하화 가능 공간(칸 단위) '+fmtN1(space)+'드럼 < 오더 '+fmtN1(newTotal)+'드럼');
+    return false;
+  }
+  return true;
+}
+
+/* ── 원본 이식: 오더 확정/해제 ── */
+window.ordLock = ft => {
+  const last = ordState.last[ft];
+  if(!last || !(last.nTrucks>0)) return toast('확정할 오더가 없습니다.');
+  if(!confirm((ft==='d'?'경유':'무연')+' 오더를 확정할까요?\n확정 후에는 재계산·재고 변경에도 회차 구성이 변하지 않습니다.')) return;
+  ordState.locked[ft] = {
+    ts: new Date().toISOString(),
+    range: $('ordStart').value + ' ~ ' + $('ordEnd').value,
+    trucks: last.trucks.map(t=>({no:t.no, name:t.name, load:t.load})),
+    comps: last.comps.map(c=>({truck:c.truck, size:c.size, to:c.to}))
+  };
+  recalcOrder();
+  toast('📌 '+(ft==='d'?'경유':'무연')+' 오더 확정');
+};
+window.ordUnlock = ft => {
+  if(!confirm('확정을 해제할까요? 이후 계산부터 배정이 다시 최적화됩니다.')) return;
+  ordState.locked[ft] = null;
+  recalcOrder();
+  toast('확정 해제됨');
+};
+
+/* PC판 fleetSet/fleetAdd/fleetDel/fleetAuto */
+window.ordFleetSet = (ft, idx, field, val) => {
+  const fl = ordState.fleet[ft]; if(!fl || !fl[idx]) return;
+  if(ordState.locked[ft]) return toast('확정된 오더 — 수정하려면 확정 해제');
+  const prevRow = {...fl[idx]};
+  ordState.manual[ft]=null; ordState.order[ft]=[];
+  if(field==='type'){ fl[idx].type = val; fl[idx].load = typeOf(ft,val).cap; }
+  else if(field==='count'){ fl[idx].count = Math.max(0, parseInt(val)||0); }
+  else if(field==='load'){
+    const ty = typeOf(ft, fl[idx].type);
+    const want = Math.max(0, parseInt(val)||0);
+    const snapped = snapLoad(ty.comps, want);
+    if(snapped!==want) toast(ty.label+' 칸 구성으로 '+want+'드럼 불가 → '+snapped+'드럼 보정');
+    fl[idx].load = Math.min(snapped, ty.cap);
+  }
+  if(!fleetSpaceGuard(ft, fleetLoadTotal(ft))){ fl[idx] = prevRow; recalcOrder(); return; }
+  recalcOrder();
+};
+window.ordFleetAdd = ft => {
+  if(ordState.locked[ft]) return toast('확정된 오더 — 수정하려면 확정 해제');
+  ordState.manual[ft]=null; ordState.order[ft]=[];
+  const ty = TRUCK_TYPES[ft][0];
+  (ordState.fleet[ft] = ordState.fleet[ft]||[]).push({type:ty.id, count:1, load:ty.cap});
+  if(!fleetSpaceGuard(ft, fleetLoadTotal(ft))){ ordState.fleet[ft].pop(); recalcOrder(); return; }
+  recalcOrder();
+};
+window.ordFleetDel = (ft, idx) => {
+  const fl = ordState.fleet[ft]; if(!fl) return;
+  if(ordState.locked[ft]) return toast('확정된 오더 — 수정하려면 확정 해제');
+  ordState.manual[ft]=null; ordState.order[ft]=[];
+  fl.splice(idx,1); recalcOrder();
+};
+window.ordFleetAuto = ft => { if(ordState.locked[ft]) return toast('확정된 오더 — 수정하려면 확정 해제'); ordState.fleet[ft]=null; ordState.manual[ft]=null; ordState.order[ft]=[]; recalcOrder(); };
+
+/* PC판 assignSet/assignAuto */
+window.ordAssignSet = (ft, no, val) => {
+  const last = ordState.last[ft]; if(!last) return;
+  if(ordState.locked[ft]) return toast('확정된 오더 — 수정하려면 확정 해제');
+  if(!ordState.manual[ft]){
+    ordState.manual[ft] = {};
+    last.rows.forEach(r=>{ if(r.assigned>0) ordState.manual[ft][r.no]=r.assigned; });
+  }
+  const v = Math.max(0, Math.round(parseFloat(val)||0));
+  if(v>0) ordState.manual[ft][no]=v; else delete ordState.manual[ft][no];
+  ordState.order[ft] = [no, ...ordState.order[ft].filter(x=>x!==no)];
+  recalcOrder();
+};
+window.ordAssignAuto = ft => { ordState.manual[ft]=null; ordState.order[ft]=[]; recalcOrder(); };
+
+function renderOrderFuel(ft, r){
+  const label = ft==='g' ? '무연' : '경유';
+  const color = ft==='g' ? 'var(--amber-d)' : 'var(--green-d)';
+  const lk = ordState.locked[ft];
+  const head = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;gap:6px;flex-wrap:wrap">'
+    + '<span style="font-size:13px;font-weight:600;color:'+color+'">'+label
+    + (lk ? ' <span style="font-size:10.5px;font-weight:800;color:#6A4FC5;background:#F1EBFC;border:1px solid #DFD3F5;border-radius:6px;padding:2px 7px">📌 확정됨</span>' : '')
+    + '</span>'
+    + '<span style="display:flex;gap:5px">'
+    + (r.manualMode && !lk ? '<button onclick="ordAssignAuto(\''+ft+'\')" style="font-size:11px;padding:3px 8px;border:1px solid var(--line2);border-radius:7px;background:#fff;color:var(--ink)">자동 배정 복원</button>' : '')
+    + (r.nTrucks>0 && !lk ? '<button onclick="ordLock(\''+ft+'\')" style="font-size:11px;padding:3px 8px;border:1px solid #DFD3F5;border-radius:7px;background:#F1EBFC;color:#6A4FC5;font-weight:700">📌 오더 확정</button>' : '')
+    + (lk ? '<button onclick="ordUnlock(\''+ft+'\')" style="font-size:11px;padding:3px 8px;border:1px solid var(--line2);border-radius:7px;background:#fff;color:var(--ink)">확정 해제</button>' : '')
+    + '</span></div>'
+    + (lk ? '<div style="font-size:10.5px;color:#6A4FC5;margin-bottom:5px">확정된 오더 기준 — 재계산·재고 변경에도 회차 구성 불변 ('+lk.range+')</div>' : '');
+  const primary = TRUCK_TYPES[ft][0];
+  const recN = Math.ceil(r.totalEff/primary.cap);
+
+  /* 차량 구성 편집기 (PC fleet 박스) */
+  const fleet = ordState.fleet[ft] || [];
+  const fleetRows = fleet.map((row,i)=>{
+    const ty = typeOf(ft,row.type);
+    const typeSel = TRUCK_TYPES[ft].length>1
+      ? '<select onchange="ordFleetSet(\''+ft+'\','+i+',\'type\',this.value)" style="flex:1;min-width:0;padding:6px 4px;font-size:11.5px;border:1px solid var(--line2);border-radius:7px;background:#fff">'
+        + TRUCK_TYPES[ft].map(t=>'<option value="'+t.id+'"'+(t.id===row.type?' selected':'')+'>'+t.label+'</option>').join('') + '</select>'
+      : '<span style="flex:1;font-size:11.5px">'+ty.label+'</span>';
+    return '<div style="display:flex;align-items:center;gap:4px;margin-top:5px">'
+      + typeSel
+      + '<input type="number" min="0" value="'+row.count+'" onchange="ordFleetSet(\''+ft+'\','+i+',\'count\',this.value)" style="width:44px;padding:6px 2px;text-align:center;font-size:12px;border:1px solid var(--line2);border-radius:7px">'
+      + '<span style="font-size:11px;color:var(--sub)">대 ·</span>'
+      + '<input type="number" min="20" max="'+ty.cap+'" step="5" value="'+row.load+'" onchange="ordFleetSet(\''+ft+'\','+i+',\'load\',this.value)" style="width:52px;padding:6px 2px;text-align:center;font-size:12px;border:1px solid var(--line2);border-radius:7px">'
+      + '<span style="font-size:11px;color:var(--sub)">드럼</span>'
+      + '<button onclick="ordFleetDel(\''+ft+'\','+i+')" style="font-size:11px;padding:5px 7px;border:1px solid var(--line2);border-radius:7px;background:#fff;color:var(--red-d)">✕</button></div>';
+  }).join('');
+  const fleetBox = '<div style="background:var(--bg);border-radius:10px;padding:8px 10px;margin-bottom:8px">'
+    + '<div style="display:flex;justify-content:space-between;align-items:center">'
+    + '<span style="font-size:11.5px;font-weight:600">차량 구성 (오더 내역)</span>'
+    + (function(){ const sp=fuelSpaceEff(ft), over=r.totalLoad>sp;
+        return '<span style="font-size:10px;font-weight:800;padding:2px 7px;border-radius:6px;'+(over?'color:var(--red-d);background:#FDEBE9;border:1px solid #F3B5B0':'color:var(--green-d);background:#EFF9F3;border:1px solid #CBE8D6')+'" title="탱크별 (용량−현재고)를 칸(35/20) 조합으로 채울 수 있는 최대량 합">하화 가능 '+fmtN1(sp)+'드럼'+(over?' · 초과!':'')+'</span>'; })()
+    + '<button onclick="ordFleetAuto(\''+ft+'\')" style="font-size:10.5px;padding:2px 7px;border:1px solid var(--line2);border-radius:6px;background:#fff">권장 구성으로</button></div>'
+    + '<div style="font-size:10.5px;color:var(--sub);margin-top:2px">'
+    + (r.totalEff>0
+        ? '부족 '+fmtN1(r.totalShortRaw)+'드럼'
+          + (r.preCoverTot>0 ? ' − 선충당 '+fmtN1(r.preCoverTot)+' = 발주 대상 '+fmtN1(r.totalShort)+'드럼 · ' : ' · ')
+          + '권장 '+primary.cap+'드럼차 × '+recN+'대 (충당 기준 '+fmtN1(r.totalEff)+'드럼)'
+        : '발주 불필요')
+    + '</div>'
+    + (r.preCoverTot>0 ? '<div style="font-size:10.5px;color:#1668DC;margin-top:3px">↔ 이관 선충당: '
+        + Object.keys(r.preCover).map(no=>'T-'+String(no).padStart(2,'0')+' '+fmtN1(r.preCover[no])+'드럼').join(', ')
+        + ' ← 이관탱크 보유분 (이관 후 게이지 실측치를 다시 입력하세요)</div>' : '')
+    + fleetRows
+    + '<button onclick="ordFleetAdd(\''+ft+'\')" style="width:100%;margin-top:6px;font-size:11px;padding:6px;border:1px dashed var(--line2);border-radius:7px;background:#fff;color:var(--sub)">+ 차량 추가</button></div>';
+
+  /* 회차 카드 */
+  const truckHtml = r.trucks.length ? r.trucks.map(t=>{
+    const byTank = {};
+    r.comps.filter(c=>c.truck===t.no && c.to).forEach(c=>{ (byTank[c.to]=byTank[c.to]||[]).push(Math.round(c.size*10)/10); });
+    const sum = Math.round(r.comps.filter(c=>c.truck===t.no && c.to).reduce((s,c)=>s+c.size,0)*10)/10;
+    const items = Object.keys(byTank).sort((a,b)=>a-b).map(no=>{
+      const s2 = Math.round(byTank[no].reduce((s,v)=>s+v,0)*10)/10;
+      return 'T'+String(no).padStart(2,'0')+' <b>'+s2+'</b><span style="color:var(--mut)">('+summarizeComps(byTank[no])+')</span>'+(BUF.includes(+no)?'<span style="color:var(--purple-d)"> 이관용</span>':'');
+    }).join(' · ');
+    return '<div style="margin-top:3px;font-size:11.5px">'+t.no+'회차 '+t.name+' — '+items
+      + ' <span style="color:'+(sum<t.load?'var(--red-d)':'var(--sub)')+'">합계 '+sum+'/'+t.load+'</span></div>';
+  }).join('') : '<div style="font-size:11.5px;color:var(--sub)">발주 불필요 — 전 탱크 목표일까지 재고 충분</div>';
+
+  /* 결과표: 하화 배정 직접 수정 가능 */
+  const rowsHtml = r.rows.map(x=>{
+    const recv = x.buf ? 0 : (r.shares[x.no]||0);
+    const after = x.stock + x.assigned;              // 원본 공식과 동일 구조 (하화 후 = 현재고+배정; 초과 허용에 맞춰 배정 기준 통일)
+    const afterAll = after + recv;
+    const days = x.avg>0 ? (afterAll-5)/x.avg : Infinity;
+    const gap = x.buf ? 0 : (x.short - x.assigned - recv);
+    const room = Math.round((x.cap - after)*10)/10;   // 원본과 동일: 탱크 여유 = 용량 − 하화 후 (초과 시 음수 적색)
+    let sellTag = '';
+    if(!x.buf && x.avg>0){
+      const off2 = saleOff();
+      const F = Math.floor(days);
+      if(F<=0) sellTag = ' <span style="font-size:9px;color:var(--red-d)">'+(off2?'내일':'오늘')+' 소진</span>';
+      else {
+        const sd = $('ordStart') && $('ordStart').value ? new Date($('ordStart').value+'T00:00:00') : new Date();
+        sd.setDate(sd.getDate()+off2+F-1);
+        sellTag = ' <span style="font-size:9px;color:var(--mut)">~'+(sd.getMonth()+1)+'/'+sd.getDate()+'('+WD[sd.getDay()]+')</span>';
+      }
+    }
+    return '<tr>'
+      + '<td style="white-space:nowrap">T-'+String(x.no).padStart(2,'0')+(x.buf?' <span style="font-size:9px;color:var(--purple-d)">이관</span>':'')+(gap>0.05?' ⚠':'')+'</td>'
+      + '<td>'+fmtN1(x.stock)+'</td>'
+      + '<td>'+(x.buf?'—':fmtN1(x.avg))+'</td>'
+      + '<td>'+(x.buf?'—':(x.short>0.05?fmtN1(x.short):'—'))+'</td>'
+      + '<td><input type="number" min="0" step="5" value="'+(x.assigned||'')+'" placeholder="0" '+(lk?'disabled title="확정된 오더 — 수정하려면 확정 해제" style="width:52px;padding:5px 2px;text-align:center;font-size:12px;border:1px solid #DFD3F5;border-radius:7px;background:#F3F0FA;color:#6A4FC5;font-weight:700"':'onchange="ordAssignSet(\''+ft+'\','+x.no+',this.value)" style="width:52px;padding:5px 2px;text-align:center;font-size:12px;border:1px solid var(--line2);border-radius:7px"')+'></td>'
+      + '<td>'+fmtN1(after)+(recv>0?' <span style="font-size:9.5px;color:var(--purple-d)">+이관'+fmtN1(recv)+'</span>':'')+'</td>'
+      + '<td style="font-weight:600;color:'+(room<0?'var(--red-d)':'var(--green-d)')+'" title="하화 직후 기준 (이관 수령 예정분 제외)">'+room+'</td>'
+      + '<td>'+(x.buf?'보관':(x.avg>0?fmtN1(days)+'일'+sellTag:'—'))+'</td></tr>';
+  }).join('');
+  const tblHtml = '<div style="overflow-x:auto;margin-top:6px"><table style="border-collapse:collapse;min-width:510px;width:100%;font-size:11.5px;text-align:center">'
+    + '<tr style="color:var(--sub);font-size:10.5px"><td>탱크</td><td>현재고</td><td>일평균</td><td>부족</td><td>하화 배정</td><td>하화 후</td><td>탱크 여유</td><td>가용일수 (판매가능)</td></tr>'
+    + rowsHtml + '</table></div>';
+
+  /* 이관 계획 */
+  const planHtml = r.plan.length ?
+    '<div style="margin-top:6px;font-size:11.5px;color:var(--purple-d)"><b>↔ 하화 후 이관 계획</b><br>'
+    + '이관탱크 하화: ' + (r.rows.filter(x=>x.buf&&x.assigned>0).map(x=>'T-'+String(x.no).padStart(2,'0')+' +'+x.assigned).join(' · ')||'—') + '<br>'
+    + '이관 실행: ' + r.plan.map(p=>'T-'+String(p.no).padStart(2,'0')+' ← '+p.amt+'드럼').join(' · ')
+    + ' (총 '+r.planTotal+'드럼)' + (r.leftover>0?' · 잔여 보관 '+r.leftover+'드럼':'') + '</div>' : '';
+
+  /* 메시지 (PC판 문구) */
+  let msg = '';
+  r.errs.forEach(m => msg += '<div style="font-size:11.5px;color:var(--red-d);margin-top:3px">⚠ '+m+'</div>');
+  r.packErrs.forEach(m => msg += '<div style="font-size:11.5px;color:var(--red-d);margin-top:3px">✎ '+m+'</div>');
+  const assignedTotal = r.rows.reduce((s,x)=>s+x.assigned,0);
+  if(r.manualMode && assignedTotal > r.totalLoad)
+    msg += '<div style="font-size:11.5px;color:var(--red-d);margin-top:3px">✎ 총 배정 '+assignedTotal+'드럼이 상차량 '+r.totalLoad+'드럼보다 <b>'+(assignedTotal-r.totalLoad)+'드럼 많습니다</b> — 차량 추가 또는 배정 축소</div>';
+  else if(r.manualMode && r.totalLoad-assignedTotal>0)
+    msg += '<div style="font-size:11.5px;color:var(--sub);margin-top:3px">✎ 총 배정 '+assignedTotal+'드럼 — 상차량 대비 '+(r.totalLoad-assignedTotal)+'드럼 미배정 (감량 오더면 그대로 진행 가능)</div>';
+  if(r.unfit>0) msg += '<div style="font-size:11.5px;color:var(--red-d);margin-top:3px">⚠ 상차분 중 '+r.unfit+'드럼은 전 탱크 만재로 하화 공간 없음 — 오더 축소 검토</div>';
+  if(r.uncovered>0){
+    if(r.manualMode && r.totalLoad >= r.totalEff)
+      msg += '<div style="font-size:11.5px;color:var(--sub);margin-top:3px">✎ 목표일 기준 '+r.uncovered+'드럼 미달 — 상차 총량은 충분하므로 배정 재분배로 해결 가능</div>';
+    else if(r.canMoreTrucksHelp)
+      msg += '<div style="font-size:11.5px;color:var(--red-d);margin-top:3px">⚠ 오더 수량 부족: '+r.uncovered+'드럼 미충족 — 차량 추가/증량으로 해결 가능 (권장: '+primary.cap+'드럼차 × '+recN+'대)</div>';
+    else
+      msg += '<div style="font-size:11.5px;color:var(--red-d);margin-top:3px">⚠ '+r.uncovered+'드럼은 만재+이관 여유로도 불가 — 기간 중 추가 발주 필요</div>';
+  }
+  if(msg==='' && r.nTrucks>0){
+    msg = r.manualMode
+      ? '<div style="font-size:11.5px;color:'+color+';margin-top:3px">✓ 전량 배정 완료 (수동 배정 기준)'+(r.planTotal>0?' · 이관 '+r.planTotal+'드럼 포함':'')+'</div>'
+      : '<div style="font-size:11.5px;color:'+color+';margin-top:3px">✓ 전량 배정 완료'+(r.planTotal>0?' (직접 하화 + 이관 '+r.planTotal+'드럼)':'')+' · 전 판매탱크 최소 '+fmtN1(r.minDaysAch)+'일 이상 확보</div>';
+  }
+
+  return '<div style="border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px">'
+    + head + fleetBox
+    + '<div style="font-size:11.5px"><b>하화 배정 (회차별)</b></div>' + truckHtml
+    + tblHtml + planHtml + msg + '</div>';
+}
+
+// ── 백업 / 복원 (최근 10개, 이 기기 저장) ──────────
+const BK_KEY = 'tank_backups_v1';
+function bkAll(){ try{ return JSON.parse(localStorage.getItem(BK_KEY)||'[]'); }catch(e){ return []; } }
+function bkSaveAll(list){ try{ localStorage.setItem(BK_KEY, JSON.stringify(list)); }catch(e){ showErr('저장 공간 부족 — 오래된 백업을 지워주세요.'); } }
+function bkRefreshList(){
+  const list = bkAll();
+  $('bkList').innerHTML = list.length
+    ? list.map((b,i)=>{
+        const d = new Date(b.ts);
+        const g = Math.round(b.tanks.filter(t=>['1','3','4'].includes(String(t.no))||[1,3,4].includes(t.no)).reduce((s,t)=>s+(+t.drums||0),0)*10)/10;
+        const dz = Math.round(b.tanks.reduce((s,t)=>s+(+t.drums||0),0)*10)/10 - g;
+        return `<option value="${i}">${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')} · 무연 ${g} / 경유 ${Math.round(dz*10)/10}드럼${b.on?' · 발주계산 포함':''}</option>`;
+      }).join('')
+    : '<option value="">저장된 백업 없음</option>';
+}
+$('btnBackup').onclick = () => {
+  if(!tanks.length || tanks.some(t=>t.drums==='' || isNaN(t.drums)))
+    return showErr('백업할 상태가 없습니다 — 먼저 판독하거나 값을 입력해 주세요.');
+  hideErr();
+  const list = bkAll();
+  list.unshift({
+    ts: Date.now(),
+    station: metaInfo.station||'', datetime: metaInfo.datetime||'',
+    ordStart: $('ordStart').value, ordEnd: $('ordEnd').value, closed: $('ordClosed').checked,
+    tanks: tanks.map(t=>({no:t.no, fuel:t.fuel, drums:t.drums, avg:t.avg})),
+    fleet: ordState.fleet, manual: ordState.manual, order: ordState.order, locked: ordState.locked, on: ordState.on
+  });
+  while(list.length>10) list.pop();
+  bkSaveAll(list); bkRefreshList();
+  toast('백업 저장됨 ('+list.length+'/10)');
+};
+$('btnRestore').onclick = () => {
+  const list = bkAll();
+  if(!list.length) return showErr('저장된 백업이 없습니다.');
+  const idx = parseInt($('bkList').value)||0;
+  const b = list[idx]; if(!b) return;
+  hideErr();
+  metaInfo = { station:b.station, datetime:b.datetime, dt: parseDmDate(b.datetime) };
+  tanks = b.tanks.map(t=>({no:t.no, fuel:t.fuel, drums:t.drums, avg:t.avg}));
+  if(b.ordStart) $('ordStart').value = b.ordStart;
+  if(b.ordEnd) $('ordEnd').value = b.ordEnd;
+  if('closed' in b) $('ordClosed').checked = !!b.closed;
+  ordState.fleet = b.fleet||{g:null,d:null};
+  ordState.manual = b.manual||{g:null,d:null};
+  ordState.order = b.order||{g:[],d:[]};
+  ordState.locked = b.locked||{g:null,d:null};
+  ordState.on = !!b.on;
+  ordPreview = {}; previewOn = false;
+  renderReview();
+  $('step2').classList.remove('hide');
+  buildBoard();
+  $('step3').classList.remove('hide');
+  if(ordState.on) recalcOrder(); else $('ordResult').innerHTML='';
+  const d = new Date(b.ts);
+  toast((d.getMonth()+1)+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+' 백업 복원됨');
+  $('step3').scrollIntoView({behavior:'smooth'});
+};
+bkRefreshList();
+
+// ── 유틸 ────────────────────────────────────────
+function setStatus(on, txt){ $('status').style.display = on?'flex':'none'; if(txt) $('statusTxt').textContent = txt; }
+function showErr(m){ $('errBox').textContent = m; $('errBox').style.display='block'; }
+function hideErr(){ $('errBox').style.display='none'; }
+function toast(m){ const t=$('toast'); t.textContent=m; t.classList.add('on'); setTimeout(()=>t.classList.remove('on'),1800); }
+</script>
+</body>
+</html>
